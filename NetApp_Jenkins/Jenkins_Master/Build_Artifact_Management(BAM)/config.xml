@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.9">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.24">
+    <script>import com.cwctravel.hudson.plugins.extended_choice_parameter.ExtendedChoiceParameterDefinition
+
+stage(&apos;Build Artifacts&apos;){
+    
+    
+    def userInput1 = input(
+ id: &apos;userInput1&apos;, message: &apos;Enter Details for BuildArtifact&apos;, parameters: 
+ [[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1&apos;, description: &apos;CI Dev Branch Name to Artifact&apos;, name: &apos;VOLCI&apos;],[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;Build_Artifacts_JFrog_2017&apos;, description: &apos;Build Artifact Container Name&apos;, name: &apos;BACONT&apos;],[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1.zip&apos;, description: &apos;Enter name of ZIP file to create&apos;, name: &apos;ZFILE&apos;],[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1&apos;, description: &apos;Enter Name of Docker Container to convert as a Image&apos;, name: &apos;DCONTNAME&apos;],
+ [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;10.192.39.26:5001/image1:version1&apos;, description: &apos;Name of Docker Image with tag&apos;, name: &apos;DIMGNAME&apos;]]
+ )
+ 
+ 
+ def snapshotselect = new ExtendedChoiceParameterDefinition(&quot;Select Checkpoint&quot;,
+                                                          ExtendedChoiceParameterDefinition.PARAMETER_TYPE_SINGLE_SELECT,
+                                                          null,
+                                                          null,
+                                                          &apos;/var/jenkins_home/snaps2.properties&apos;,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          &apos;buildsnaps&apos;,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          false,
+                                                          false,
+                                                          10,
+                                                          null,
+                                                          null)
+    def snaps = input(id: &apos;SelectSnap&apos;, message: &apos;Select Checkpoint&apos;, parameters: [snapshotselect])
+
+ 
+ build job: &apos;Build_Artifacts_JFrog_2017&apos;, parameters: [string(name:&apos;VOLCI&apos;, value: &apos;&apos;+userInput1[&apos;VOLCI&apos;]), string(name: &apos;CISNAP&apos;, value: &apos;&apos;+snaps),string(name:&apos;BACONT&apos;, value: &apos;&apos;+userInput1[&apos;BACONT&apos;])]
+ 
+
+   
+node(&apos;Build_Artifacts_JFrog_2017&apos;){
+    
+ //def userInput2 = input(
+ //id: &apos;userInput2&apos;, message: &apos;Enter Details for BuildArtifact&apos;, parameters: [
+// [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1.zip&apos;, description: &apos;Enter Name for Zip File&apos;, name: &apos;ZFILE&apos;]
+ //])
+   
+    
+   build job: &apos;ZipAndCopy&apos;, parameters: [string(name:&apos;ZFILE&apos;, value: &apos;&apos;+userInput1[&apos;ZFILE&apos;])] 
+   
+ 
+
+// def userInput3 = input(
+ // id: &apos;userInput3&apos;, message: &apos;Enter details for building a docker image&apos;, parameters: [
+ //[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1&apos;, description: &apos;Enter Name of Docker Container to convert as a Image&apos;, name: &apos;DCONTNAME&apos;],
+ //[$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;10.192.39.26:5001/image1:version1&apos;, description: &apos;Name of Docker Image with tag&apos;, name: &apos;DIMGNAME&apos;]
+ //])
+
+    build job: &apos;CreateDockerImage&apos;, parameters: [string(name: &apos;DCONTNAME&apos;, value: &apos;&apos;+userInput1[&apos;DCONTNAME&apos;]),string(name: &apos;DIMGNAME&apos;, value: &apos;&apos;+userInput1[&apos;DIMGNAME&apos;])]
+ }   
+}</script>
+    <sandbox>false</sandbox>
+  </definition>
+  <triggers/>
+</flow-definition>

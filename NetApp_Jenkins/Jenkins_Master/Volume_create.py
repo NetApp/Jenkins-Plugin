@@ -1,84 +1,54 @@
-########################################################################################################################
-#                                                                                                                      #
-# NetApp -Jenkins Plugin using Docker container                                                                        #
-# Copyright 2016 NetApp, Inc.                                                                                          #
-#                                                                                                                      #
-# The python scripts in this folder and others, allow CI admin and the developer a plugin that integrates              #
-# with Cloudbees Jenkins Enterprise using NetApp ONTAP APIs to provide an automated continuous Integration (CI)        #
-# pipeline using Gitlab, Docker container and persistent storage using NetApp Docker Volume Plugin (nDVP) for ONTAP.   #
-#                                                                                                                      #
-# Maintained By:  Shrivatsa Upadhye (shrivatsa.upadhye@netapp.com)                                                     #
-#                 Akshay Patil (Akshay.Patil@netapp.com)                                                               #
-#                                                                                                                      #
-########################################################################################################################
+################################################################################
+# NetApp-Jenkins Integration Scripts
+#          This script was developed by NetApp to help demonstrate NetApp
+#          technologies.  This script is not officially supported as a
+#          standard NetApp product.
+#
+# Purpose: Script to create a new base partition container with a netapp volume mounted to it and pu# ll code from the SCM onto this
+#
+#
+# Usage:   %> Volume_create.py <args>
+#
+# Author:  Akshay Patil (akshay.patil@netapp.com)
+#
+#
+# NETAPP CONFIDENTIAL
+# -------------------
+# Copyright 2016 NetApp, Inc. All Rights Reserved.
+#
+# NOTICE: All information contained herein is, and remains the property
+# of NetApp, Inc.  The intellectual and technical concepts contained
+# herein are proprietary to NetApp, Inc. and its suppliers, if applicable,
+# and may be covered by U.S. and Foreign Patents, patents in process, and are
+# protected by trade secret or copyright law. Dissemination of this
+# information or reproduction of this material is strictly forbidden unless
+# permission is obtained from NetApp, Inc.
+#
+################################################################################
 
+
+import time
 import base64
 import argparse
-import sys
-import requests
-import ssl
-import subprocess
-import time
-import os
-from subprocess import call
-
+import json
+import requests 
 requests.packages.urllib3.disable_warnings()
 
-def get_volumes():
-    base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
-
-    url = "https://{}/api/1.0/ontap/volumes/".format(api)
-    headers = {
-        "Authorization": "Basic %s" % base64string,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-
-    r = requests.get(url, headers=headers,verify=False)
-    #print r.json()
-    return r.json()
-
-def get_aggrs():
-    base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
-
-    url = "https://{}/api/1.0/ontap/aggregates/".format(api)
-    headers = {
-        "Authorization": "Basic %s" % base64string,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-
-    r = requests.get(url, headers=headers,verify=False)
-    #print r.json()
-    return r.json()
-
-
 def get_svms():
+    #base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
-
-    url = "https://{}/api/1.0/ontap/storage-vms/".format(api)
+    
+    url = "https://{}/api/1.0/slo/storage-vms/".format(api)
     headers = {
-        "Authorization": "Basic %s" % base64string,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+    'authorization': "Basic %s" % base64string,
+    'content-type': "application/json",
+    'accept': "application/json"
     }
 
     r = requests.get(url, headers=headers,verify=False)
     #print r.json()
     return r.json()
 
-def get_size(vol_size):
-    tmp = int(vol_size) * 1024 * 1024
-    return tmp
-
-
-def get_key_aggr(aggr_name):
-    tmp = dict(get_aggrs())
-    aggrs = tmp['result']['records']
-    for i in aggrs:
-        if i['name'] == aggr_name:
-            # print i
-            return i['key']
 
 def get_key_svms(svm_name):
     tmp = dict(get_svms())
@@ -88,65 +58,114 @@ def get_key_svms(svm_name):
             # print i
             return i['key']
 
+
+#def get_storage_platform_resource_key(vol_name):
+    #tmp = dict(get_vols())
+    #platform_keys =tmp['result']['records']
+    
+
+def get_vols():
+    base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
+
+    #url = "https://{}/api/1.0/ontap/volumes/".format(api)
+    url = "https://{}/api/1.0/slo/file-shares/".format(api)
+
+    headers = {
+    'authorization': "Basic %s" % base64string,
+    'content-type': "application/json",
+    'accept': "application/json"
+    }
+
+    r = requests.get(url, headers=headers,verify=False)
+    
+    #print r.json()
+    #with open('/tmp/ps/data.txt', 'w') as outfile:
+        #json.dump(r, outfile)
+    return r.json()
+
 def check_vol(vol_name):
-    tmp = dict(get_volumes())
+    tmp = dict(get_vols())
     vols = tmp['result']['records']
     names = [i['name'] for i in vols]
     #print "Volume Names: ", names
     return vol_name in names
 
-def get_jpath(vol_name):
-    tmp = dict(get_volumes())
+
+def get_storage_platform_resource_key(vol_name):
+    tmp = dict(get_vols())
     vols = tmp['result']['records']
     for i in vols:
-         if i['name'] == vol_name:
-            # print i
-            return i['junction_path']
+        if i['name'] == vol_name:
+            #print i['storage_platform_resource_key']
+            return i['storage_platform_resource_key']
 
-def make_volume(vol_name,aggr_name,svm_name,vol_size):
+
+def make_snapdir_false():
+    storage_platform_resource_key=get_storage_platform_resource_key(vol_name)
+
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
-    url = "https://{}/api/1.0/ontap/volumes/".format(api)
-    aggr_key=get_key_aggr(aggr_name)
-    svm_key=get_key_svms(svm_name)
-    v_size=get_size(vol_size)
-
-
-    headers = {
-    "Authorization": "Basic %s" % base64string,
-    "Content-Type": "application/json",
-    "Accept": "application/json"
-    }
-    data= {
-    "aggregate_key":aggr_key,
-    "size":v_size,
-    "storage_vm_key":svm_key,
-    "name":vol_name,
-    "security_user_id":uid,
-    "security_group_id":gid,
-    "junction_path":'/'+vol_name,
-    "security_permissions":"777",
+    #v_size=get_size(vol_size)
+    url = "https://{}/api/2.0/ontap/volumes/{}".format(api,storage_platform_resource_key)
+    payload = {
+    #"storage_service_level_key": "44b90387-a490-4267-8229-9c0b422e961c",
+    #"storage_vm_key": svm_key,
+    #"name": vol_name,
+    #"size": v_size
     "is_snap_dir_access_enabled":"False"
     }
-    r = requests.post(url, headers=headers,json=data, verify=False)
+    headers = {
+    'authorization': "Basic %s" % base64string,
+    'content-type': "application/json",
+    'accept': "application/json"
+    }
+    response = requests.put(url,headers=headers,json=payload,verify=False)
+      
+
+def get_size(vol_size):
+    tmp = int(vol_size) * 1024 * 1024
+    return tmp
+
+
+def make_volume(vol_name,svm_name,vol_size):
+    svm_key=get_key_svms(svm_name)
+
+    base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
+    v_size=get_size(vol_size)
+    url = "https://{}/api/1.0/slo/file-shares".format(api) 
+    payload = {
+    "storage_service_level_key": "44b90387-a490-4267-8229-9c0b422e961c",
+    "storage_vm_key": svm_key,
+    "name": vol_name,
+    "size": v_size
+    #"is_snap_dir_access_enabled":"False"
+    } 
+    headers = {
+    'authorization': "Basic %s" % base64string,
+    'content-type': "application/json",
+    'accept': "application/json"
+    }
+    response = requests.post(url,headers=headers,json=payload,verify=False)
+    #print (response.text)
+    #print(response.text)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Passing variables to the program')
-    parser.add_argument('-ag','--aggr_name', help='Aggregate to create or clone from',dest='aggr_name',required=True)
+    parser.add_argument('-v','--vol_name', help='Volume to create or clone from',dest='vol_name',required=True)
     parser.add_argument('-vs','--vs name', help='Select SVM',dest='svm_name',required=True)
     parser.add_argument('-s','--vol_size', help='Size of Volume',dest='vol_size',required=True)
-    parser.add_argument('-v','--vol_name', help='Volume to create or clone from',dest='vol_name',required=True)
     parser.add_argument('-a','--api', help='API server IP:port',dest='api',required=True)
     parser.add_argument('-apiuser','--apiuser', help='Add APIServer Username',dest='apiuser',required=True)
     parser.add_argument('-apipass','--apipass', help='Add APIServer Password',dest='apipass',required=True)
-    parser.add_argument('-uid','--uid', help='Add User ID',dest='uid')
-    parser.add_argument('-gid','--gid', help='Add Group ID',dest='gid')
+
     globals().update(vars(parser.parse_args()))
     count = 0
-    make_volume(vol_name,aggr_name,svm_name,vol_size)
-
+    make_volume(vol_name,svm_name,vol_size)
     while check_vol(vol_name) == False:
         time.sleep(1)
         count=count+1
-
-    print "New Build artifact archival volume created successfully in {} seconds".format(count)
+    make_snapdir_false()
+    #get_storage_platform_resource_key(vol_name)
+    print "New Development Branch baseline created successfully in {} seconds".format(count)
 

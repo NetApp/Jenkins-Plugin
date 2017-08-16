@@ -1,39 +1,26 @@
-#! /bin/bash
+#! /bin/bash -e
 
-set -e
-
-# Copy files from /usr/share/jenkins/ref into $JENKINS_HOME
-# So the initial JENKINS-HOME is set with expected content.
-# Don't override, as this is just a reference setup, and use from UI
-# can then change this, upgrade plugins, etc.
-copy_reference_file() {
-	f="${1%/}"
-	b="${f%.override}"
-	echo "$f" >> "$COPY_REFERENCE_FILE_LOG"
-	rel="${b:23}"
-	dir=$(dirname "${b}")
-	echo " $f -> $rel" >> "$COPY_REFERENCE_FILE_LOG"
-	if [[ ! -e $JENKINS_HOME/${rel} || $f = *.override ]]
-	then
-		echo "copy $rel to JENKINS_HOME" >> "$COPY_REFERENCE_FILE_LOG"
-		mkdir -p "$JENKINS_HOME/${dir:23}"
-		cp -r "${f}" "$JENKINS_HOME/${rel}";
-		# pin plugins on initial copy
-		[[ ${rel} == plugins/*.jpi ]] && touch "$JENKINS_HOME/${rel}.pinned"
-	fi;
-}
-: ${JENKINS_HOME:="/var/jenkins_home"}
-export -f copy_reference_file
-touch "${COPY_REFERENCE_FILE_LOG}" || (echo "Can not write to ${COPY_REFERENCE_FILE_LOG}. Wrong volume permissions?" && exit 1)
+: "${JENKINS_HOME:="/var/jenkins_home"}"
+touch "${COPY_REFERENCE_FILE_LOG}" || { echo "Can not write to ${COPY_REFERENCE_FILE_LOG}. Wrong volume permissions?"; exit 1; }
 echo "--- Copying files at $(date)" >> "$COPY_REFERENCE_FILE_LOG"
-find /usr/share/jenkins/ref/ -type f -exec bash -c "copy_reference_file '{}'" \;
-
-netappdvp --config=/etc/netappdvp/ontap-nas.json &
+find /usr/share/jenkins/ref/ -type f -exec bash -c '. /usr/local/bin/jenkins-support; for arg; do copy_reference_file "$arg"; done' _ {} +
 
 # if `docker run` first argument start with `--` the user is passing jenkins launcher arguments
 if [[ $# -lt 1 ]] || [[ "$1" == "--"* ]]; then
-  eval "exec java $JAVA_OPTS -jar /usr/share/jenkins/jenkins.war $JENKINS_OPTS \"\$@\""
+
+  # read JAVA_OPTS and JENKINS_OPTS into arrays to avoid need for eval (and associated vulnerabilities)
+  java_opts_array=()
+  while IFS= read -r -d '' item; do
+    java_opts_array+=( "$item" )
+  done < <([[ $JAVA_OPTS ]] && xargs printf '%s\0' <<<"$JAVA_OPTS")
+
+  jenkins_opts_array=( )
+  while IFS= read -r -d '' item; do
+    jenkins_opts_array+=( "$item" )
+  done < <([[ $JENKINS_OPTS ]] && xargs printf '%s\0' <<<"$JENKINS_OPTS")
+
+  exec java "${java_opts_array[@]}" -jar /usr/share/jenkins/jenkins.war "${jenkins_opts_array[@]}" "$@"
 fi
 
-# As argument is not jenkins, assume user want to run his own process, for sample a `bash` shell to explore this image
+# As argument is not jenkins, assume user want to run his own process, for example a `bash` shell to explore this image
 exec "$@"

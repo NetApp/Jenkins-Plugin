@@ -8,7 +8,7 @@ RUN cd /tmp && curl -O http://repo.jenkins-ci.org/releases/org/jenkins-ci/plugin
 RUN apt-get update
 RUN apt-get install -y default-jdk
 RUN apt-get install -y python
-RUN apt-get install -y python-pip
+RUN apt-get install -y python-pip nano xterm
 RUN pip install requests
 
 ENTRYPOINT ["/usr/bin/startcont.sh"] 

@@ -1,17 +1,29 @@
-########################################################################################################################
-#                                                                                                                      #
-# NetApp -Jenkins Plugin using Docker container                                                                        #
-# Copyright 2016 NetApp, Inc.                                                                                          #
-#                                                                                                                      #
-# The python scripts in this folder and others, allow CI admin and the developer a plugin that integrates              #
-# with Cloudbees Jenkins Enterprise using NetApp ONTAP APIs to provide an automated continuous Integration (CI)        #
-# pipeline using Gitlab, Docker container and persistent storage using NetApp Docker Volume Plugin (nDVP) for ONTAP.   #
-#                                                                                                                      #
-# Maintained By:  Shrivatsa Upadhye (shrivatsa.upadhye@netapp.com)                                                     #
-#                 Akshay Patil (Akshay.Patil@netapp.com)                                                               #
-#                                                                                                                      #
-########################################################################################################################
-
+###############################################################################
+# NetApp-Jenkins Integration Scripts
+#          This script was developed by NetApp to help demonstrate NetApp 
+#          technologies.  This script is not officially supported as a 
+#          standard NetApp product.
+#         
+# Purpose: Script to create a new local workspace from an existing partition.
+#          
+#
+# Usage:   %> user_workspace_creation.py <args> 
+#
+# Author:  Akshay Patil (akshay.patil@netapp.com)
+#          
+# NETAPP CONFIDENTIAL
+# -------------------
+# Copyright 2016 NetApp, Inc. All Rights Reserved.
+#
+# NOTICE: All information contained herein is, and remains the property
+# of NetApp, Inc.  The intellectual and technical concepts contained
+# herein are proprietary to NetApp, Inc. and its suppliers, if applicable,
+# and may be covered by U.S. and Foreign Patents, patents in process, and are
+# protected by trade secret or copyright law. Dissemination of this
+# information or reproduction of this material is strictly forbidden unless
+# permission is obtained from NetApp, Inc.
+#
+################################################################################
 import base64
 import argparse
 import sys
@@ -53,7 +65,7 @@ def get_snaps(vol_name):
     key=get_key(vol_name)
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
     #print key
-    url4= "https://{}/api/1.0/ontap/snapshots?volume_key={}".format(api,key)
+    url4= "https://{}/api/2.0/ontap/snapshots?volume_key={}".format(api,key)
     headers = {
         "Authorization": "Basic %s" % base64string,
         "Content-Type": "application/json",
@@ -67,7 +79,7 @@ def get_snaps(vol_name):
 def get_volumes():
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
 
-    url = "https://{}/api/1.0/ontap/volumes/".format(api)
+    url = "https://{}/api/2.0/ontap/volumes/".format(api)
     headers = {
         "Authorization": "Basic %s" % base64string,
         "Content-Type": "application/json",
@@ -84,7 +96,7 @@ def make_clone(vol_name,snapshot_name,clone_name):
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
     key=get_key(vol_name)
     #print key
-    url2= "https://{}/api/1.0/ontap/volumes/{}/jobs/clone".format(api,key)
+    url2= "https://{}/api/2.0/ontap/volumes/{}/jobs/clone".format(api,key)
     #print url2
     headers = {
         "Authorization": "Basic %s" % base64string,
@@ -105,7 +117,7 @@ def make_clonejpath(clone_name):
     base64string = base64.encodestring('%s:%s' %(apiuser,apipass)).replace('\n', '')
     clone = check_vol(clone_name)
     #print clone
-    url6= "https://{}/api/1.0/ontap/volumes/{}/jobs/mount".format(api,get_key(clone_name))
+    url6= "https://{}/api/2.0/ontap/volumes/{}/jobs/mount".format(api,get_key(clone_name))
     #print url6
     headers = {
         "Authorization": "Basic %s" % base64string,
@@ -137,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument('-i','--image_name', help='Image to run the container from',dest='image_name',required=True)
     parser.add_argument('-m','--masterip', help='IP address of the Jenkins Master Container',dest='masterip',required=True)
     parser.add_argument('-cont','--cont_name', help='Name of the container',dest='cont_name',required=True)
-    parser.add_argument('-l','--label_name', help='Name of the label of the slave',dest='label_name',required=True)
+    parser.add_argument('-l','--label_name', help='Name of the label of the slave',dest='label_name')
     parser.add_argument('-volba','--vol_name_ba', help='Build Artifact Volume Name',dest='vol_name_ba',required=True)
 
 
@@ -162,8 +174,8 @@ if __name__ == "__main__":
     print "Clone created successfully in {} seconds.".format(count)
 
     slave_name = cont_name
-
-    dock_cmd = "docker run -i -t -d -e masterip={} -e labelname={} -e slavename={} --name {} --volume-driver netapp --volume {}:/tmp/vol1 --volume {}:/tmp/vol2 {}".format(masterip,label_name,slave_name,cont_name,vol_name_ba,clone_name,image_name)
+    time.sleep(5)
+    dock_cmd = "docker run -i -t -d -e masterip={} -e labelname={} -e slavename={} --name {} -v /var/run/docker.sock:/var/run/docker.sock --volume-driver netapp --volume {}:/tmp/vol1 --volume {}:/tmp/vol2 {}".format(masterip,label_name,slave_name,cont_name,vol_name_ba,clone_name,image_name)
 
     return_code = subprocess.check_call(dock_cmd,shell=True,stderr=subprocess.STDOUT)
     

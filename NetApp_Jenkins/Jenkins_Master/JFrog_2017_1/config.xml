@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>python /tmp/ps/CI_dev_branch_create2.py -v $JOB_NAME -apiuser $APIUSER  -apipass  $APIPASS -a $APISERVER -vs $VS -s $VOLSIZE  
+python /tmp/ps/Jenkins_slave_create2.py -i $SLAVE -c $JOB_NAME -l $JOB_NAME -p $JOB_NAME -m $JENKINS_URL -v $JOB_NAME</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.9">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.24">
+    <script>import com.cwctravel.hudson.plugins.extended_choice_parameter.ExtendedChoiceParameterDefinition
+
+stage (&apos;User WorkSpaces (Private Builds)&apos;){
+    
+    
+    def userInput1 = input(
+ id: &apos;userInput1&apos;, message: &apos;Enter Details for User Workspace&apos;, parameters: [
+ [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;&apos;, description: &apos;UID For Clone Workspace&apos;, name: &apos;UID&apos;],
+ [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;&apos;, description: &apos;GID For Clone Workspace&apos;, name: &apos;GID&apos;],
+ [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;JFrog_2017_1&apos;, description: &apos;CI Dev Branch to create workspaces from:&apos;, name: &apos;VOLCI&apos;],
+ [$class: &apos;TextParameterDefinition&apos;, defaultValue: &apos;Dev1_JFrog_2017_1&apos;, description: &apos;Container Name for User Workspace&apos;, name: &apos;WSNAME&apos;]
+])
+
+  def snapshotselect = new ExtendedChoiceParameterDefinition(&quot;Select Checkpoint&quot;,
+                                                          ExtendedChoiceParameterDefinition.PARAMETER_TYPE_SINGLE_SELECT,
+                                                          null,
+                                                          null,
+                                                          &apos;/var/jenkins_home/snaps2.properties&apos;,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          &apos;buildsnaps&apos;,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          null,
+                                                          false,
+                                                          false,
+                                                          10,
+                                                          null,
+                                                          null)
+    def snaps = input(id: &apos;SelectSnap&apos;, message: &apos;Select Checkpoint&apos;, parameters: [snapshotselect])
+
+
+
+   build job: &apos;UserWorkspace&apos;, parameters: [string(name: &apos;SNAP&apos;, value: &apos;&apos;+snaps), string(name: &apos;VOL&apos;, value: &apos;&apos;+userInput1[&apos;VOLCI&apos;]), string(name: &apos;UID&apos;, value: &apos;&apos;+userInput1[&apos;UID&apos;]), string(name: &apos;GID&apos;, value: &apos;&apos;+userInput1[&apos;GID&apos;]), string(name: &apos;WSNAME&apos;, value: &apos;&apos;+userInput1[&apos;WSNAME&apos;])]
+
+
+}   
+   
+   </script>
+    <sandbox>false</sandbox>
+  </definition>
+  <triggers/>
+</flow-definition>

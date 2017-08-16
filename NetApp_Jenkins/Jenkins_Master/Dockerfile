@@ -1,11 +1,11 @@
-FROM java:8-jdk
+FROM openjdk:8-jdk
 
+MAINTAINER Akshay.Patil@Netapp.com
 #RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 RUN apt-get clean
 RUN apt-get update && apt-get install -y git curl zip && rm -rf /var/lib/apt/lists/*
 RUN apt-get update
-RUN apt-get install -y sudo
-RUN apt-get install -y python-pip
+RUN apt-get install -y sudo python-pip xterm
 RUN pip install requests
 RUN pip install texttable
 
@@ -17,13 +17,14 @@ RUN apt-get update
 RUN apt-get install -y vim
 RUN apt-get install -y nano
 RUN apt-cache policy docker-engine
-RUN apt-get install -y docker-engine=1.11.2*
-#CMD service docker start 
+RUN apt-get install -y docker-engine=1.12.5*
+
+
 
 # nDVP Installation
 # download and unpack the application
-RUN wget https://github.com/NetApp/netappdvp/releases/download/v1.2.1/netappdvp-1.2.1.tar.gz
-RUN tar zxf netappdvp-1.2.1.tar.gz
+RUN wget https://github.com/NetApp/netappdvp/releases/download/v1.3/netappdvp-1.3.tar.gz
+RUN tar zxf netappdvp-1.3.tar.gz
 
 # move to a location in the bin path
 RUN mv netappdvp /usr/local/bin
@@ -37,10 +38,10 @@ RUN mkdir -p /etc/netappdvp
 COPY ontap-nas.json /etc/netappdvp/ontap-nas.json
 #CMD netappdvp --config=/etc/netappdvp/ontap-nas.json &
 
-# Jenkins Installation
 
 ENV JENKINS_HOME /var/jenkins_home
 ENV JENKINS_SLAVE_AGENT_PORT 50000
+ENV TERM xterm
 
 ARG user=jenkins
 ARG group=jenkins
@@ -62,77 +63,90 @@ VOLUME /var/jenkins_home
 # or config file with your custom jenkins Docker image.
 RUN mkdir -p /usr/share/jenkins/ref/init.groovy.d
 
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_User_Workspace_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_Checkpoint_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Delete_Checkpoint_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/List_Checkpoint_and_Workspace_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_Local_SCM_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_Build_Artifact_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Zip_and_Copy_Build_Artifact_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Delete_User_Workspace_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Delete_Build_Artifact_Container_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_CI_Environment_\(Development_Branch\)_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/List_StorageTenants_and_Aggregates_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/List_Volumes_\(NetApp\)
-RUN mkdir -p /usr/share/jenkins/ref/jobs/Create_Deployment_File_\(NetApp\)
-
 
 RUN mkdir -p /tmp/ps
 RUN mkdir -p /tmp/vol1
 RUN mkdir -p /tmp/vol2
 
-ENV TINI_SHA 066ad710107dc7ee05d3aa6e4974f01dc98f3888
+
+
+
+ENV TINI_VERSION 0.14.0
+ENV TINI_SHA 6c41ec7d33e857d4779f14d9c74924cab0c7973485d2972419a3b7c7620ff5fd
 
 # Use tini as subreaper in Docker container to adopt zombie processes 
-RUN curl -fsSL https://github.com/krallin/tini/releases/download/v0.5.0/tini-static -o /bin/tini && chmod +x /bin/tini \
-  && echo "$TINI_SHA  /bin/tini" | sha1sum -c -
+RUN curl -fsSL https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini-static-amd64 -o /bin/tini && chmod +x /bin/tini \
+  && echo "$TINI_SHA  /bin/tini" | sha256sum -c -
 
 COPY init.groovy /usr/share/jenkins/ref/init.groovy.d/tcp-slave-agent-port.groovy
 
-COPY Create_CI_Environment_\(Development_Branch\)_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Create_CI_Environment_\(Development_Branch\)_\(NetApp\)
-COPY Create_User_Workspace_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Create_User_Workspace_\(NetApp\)
-COPY Create_Checkpoint_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Create_Checkpoint_\(NetApp\)
-COPY Delete_Checkpoint_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Delete_Checkpoint_\(NetApp\)
-COPY List_Checkpoint_and_Workspace_\(NetApp\)/ /usr/share/jenkins/ref/jobs/List_Checkpoint_and_Workspace_\(NetApp\)
-COPY Create_Local_SCM_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Create_Local_SCM_\(NetApp\)
-COPY Create_Build_Artifact_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Create_Build_Artifact_\(NetApp\)
-COPY Zip_and_Copy_Build_Artifact_\(NetApp\)/ /usr/share/jenkins/ref/jobs/Zip_and_Copy_Build_Artifact_\(NetApp\)
-COPY Delete_User_Workspace_\(NetApp\) /usr/share/jenkins/ref/jobs/Delete_User_Workspace_\(NetApp\)
-COPY Delete_Build_Artifact_Container_\(NetApp\) /usr/share/jenkins/ref/jobs/Delete_Build_Artifact_Container_\(NetApp\)
-COPY List_StorageTenants_and_Aggregates_\(NetApp\) /usr/share/jenkins/ref/jobs/List_StorageTenants_and_Aggregates_\(NetApp\)
-COPY List_Volumes_\(NetApp\) /usr/share/jenkins/ref/jobs/List_Volumes_\(NetApp\)
-COPY Create_Deployment_File_\(NetApp\) /usr/share/jenkins/ref/jobs/Create_Deployment_File_\(NetApp\)
+RUN mkdir -p /usr/share/jenkins/ref/jobs/Source_Code_Management\(SCM\)
+RUN mkdir -p /usr/share/jenkins/ref/jobs/Build_Artifact_Management\(BAM\)
+RUN mkdir -p /usr/share/jenkins/ref/jobs/Developer_Workspace\(DWS\)
+RUN mkdir -p /usr/share/jenkins/ref/jobs/Continous_Integration\(CI\)
+
+
+
+COPY Build_Artifact_Management\(BAM\) /usr/share/jenkins/ref/jobs/Build_Artifact_Management\(BAM\)
+COPY Continous_Integration\(CI\) /usr/share/jenkins/ref/jobs/Continous_Integration\(CI\)
+COPY Developer_Workspace\(DWS\) /usr/share/jenkins/ref/jobs/Developer_Workspace\(DWS\)
+COPY Source_Code_Management\(SCM\) /usr/share/jenkins/ref/jobs/Source_Code_Management\(SCM\)
+COPY Build_Artifacts_JFrog_2017 /usr/share/jenkins/ref/jobs/Build_Artifacts_JFrog_2017
+COPY CreateDockerImage /usr/share/jenkins/ref/jobs/CreateDockerImage
+COPY JFrog_2017_1 /usr/share/jenkins/ref/jobs/JFrog_2017_1
+COPY JFrog_OSS_Repo /usr/share/jenkins/ref/jobs/JFrog_OSS_Repo
+#COPY ListBuildCheckpoints /usr/share/jenkins/ref/jobs/ListBuildCheckpoints
+COPY UserWorkspace /usr/share/jenkins/ref/jobs/UserWorkspace
+COPY ZipAndCopy /usr/share/jenkins/ref/jobs/ZipAndCopy
+COPY ListSCMCheckpoints /usr/share/jenkins/ref/jobs/List_SCM_Checkpoints
+COPY ListBuildCheckPoints /usr/share/jenkins/ref/jobs/List_Build_CheckPoints
+COPY SCMCheckpoints /usr/share/jenkins/ref/jobs/SCMCheckpoints
+COPY CreateBuildCheckpoints /usr/share/jenkins/ref/jobs/CreateBuildCheckpoints
+COPY Purge_Policy /usr/share/jenkins/ref/jobs/Purge_Policy
+#COPY JFrog_CI_Build /usr/share/jenkins/ref/jobs/JFrog_CI_Build
 
 
 COPY build_artifact_create.py /tmp/ps/build_artifact_create.py
 COPY clone_list.py /tmp/ps/clone_list.py
 COPY clone_purge.py /tmp/ps/clone_purge.py
 COPY Volume_create.py /tmp/ps/Volume_create.py
-COPY Volume_create_ba.py /tmp/ps/Volume_create_ba.py
-COPY user_workspace_creation.py /tmp/ps/user_workspace_creation.py
-COPY scm_config.py /tmp/ps/scm_config.py
-COPY CI_dev_branch_create.py /tmp/ps/CI_dev_branch_create.py
-COPY Jenkins_slave_create.py /tmp/ps/Jenkins_slave_create.py
+COPY user_workspace_creation1.py /tmp/ps/user_workspace_creation1.py
+COPY scmconfig2.py /tmp/ps/scmconfig2.py
+COPY CI_dev_branch_create2.py /tmp/ps/CI_dev_branch_create2.py
+COPY Jenkins_slave_create2.py /tmp/ps/Jenkins_slave_create2.py
 COPY snapshot_delete.py /tmp/ps/snapshot_delete.py
 COPY snap_show.py /tmp/ps/snap_show.py
 COPY snapshot_create.py /tmp/ps/snapshot_create.py
 COPY volume_list.py /tmp/ps/volume_list.py
 COPY svm_aggr_list.py /tmp/ps/svm_aggr_list.py
 COPY build_artifact_container_purge.py /tmp/ps/build_artifact_container_purge.py
+#COPY dockerimagecreate.py /tmp/ps/dockerimagecreate.py
+COPY create_snap_structure.py /tmp/ps/create_snap_structure.py
+COPY scmcheckpoint_create.py /tmp/ps/scmcheckpoint_create.py
+COPY snaps2.properties /usr/share/jenkins/ref/snaps2.properties
+COPY snapshot_create_write.py /tmp/ps/snapshot_create_write.py
+COPY purge.py /tmp/ps/purge.py
+COPY config.xml /usr/share/jenkins/ref/config.xml
 
 
 ARG JENKINS_VERSION
-ENV JENKINS_VERSION ${JENKINS_VERSION:-1.625.16.1}
-ARG JENKINS_SHA
-ENV JENKINS_SHA ${JENKINS_SHA:-877a3fc0013856795178a7eae4f5357c48d4bf77}
+ENV JENKINS_VERSION ${JENKINS_VERSION:-2.71}
 
-# could use ADD but this one does not check Last-Modified header 
+# jenkins.war checksum, download will be validated using it
+ARG JENKINS_SHA=14727da24054e956dc8b8514998e19001c99efce637891f544d2a9b3d9ea752c
+
+#Can be used to customize where jenkins.war get downloaded from
+ARG JENKINS_URL=https://repo.jenkins-ci.org/public/org/jenkins-ci/main/jenkins-war/${JENKINS_VERSION}/jenkins-war-${JENKINS_VERSION}.war
+
+# could use ADD but this one does not check Last-Modified header neither does it allow to control checksum 
 # see https://github.com/docker/docker/issues/8331
-RUN curl -fsSL http://jenkins-updates.cloudbees.com/download/je/${JENKINS_VERSION}/jenkins.war -o /usr/share/jenkins/jenkins.war \
-  && echo "${JENKINS_SHA}  /usr/share/jenkins/jenkins.war" | sha1sum -c -
+RUN curl -fsSL ${JENKINS_URL} -o /usr/share/jenkins/jenkins.war \
+  && echo "${JENKINS_SHA}  /usr/share/jenkins/jenkins.war" | sha256sum -c -
+
 
 ENV JENKINS_UC https://updates.jenkins.io
 RUN chown -R ${user} "$JENKINS_HOME" /usr/share/jenkins/ref
+
 # for main web interface:
 EXPOSE 8080
 
@@ -143,13 +157,13 @@ ENV COPY_REFERENCE_FILE_LOG $JENKINS_HOME/copy_reference_file.log
 
 USER root
 
-COPY cloudbees-referrer.txt /usr/share/jenkins/ref/.cloudbees-referrer.txt
+COPY jenkins-support /usr/local/bin/jenkins-support
 COPY jenkins.sh /usr/local/bin/jenkins.sh
+RUN echo 2.0 > /usr/share/jenkins/ref/jenkins.install.UpgradeWizard.state
 ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/jenkins.sh"]
+
 # from a derived Dockerfile, can use `RUN plugins.sh active.txt` to setup /usr/share/jenkins/ref/plugins from a support bundle
-
 COPY plugins.sh /usr/local/bin/plugins.sh
-COPY plugins.txt /usr/share/jenkins/plugins.txt
-RUN /usr/local/bin/plugins.sh /usr/share/jenkins/plugins.txt
-
+COPY install-plugins.sh /usr/local/bin/install-plugins.sh
+RUN /usr/local/bin/install-plugins.sh workflow-aggregator:2.5 artifactory:2.12.1 swarm:2.1 parameterized-trigger:2.35.1 extended-choice-parameter:0.75 git:3.4.1 git-client:2.4.6 jenkins-multijob-plugin:1.24 nodelabelparameter:1.7.2
 

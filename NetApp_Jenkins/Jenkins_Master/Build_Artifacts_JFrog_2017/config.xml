@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>VOLCI</name>
+          <description>Name of CI Volume to Zip</description>
+          <defaultValue>JFrog_2017_1</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>CISNAP</name>
+          <description>SnapShot of CIVolume to Clone and Zip</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>BACONT</name>
+          <description>Build Artifact Container Name</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>python /tmp/ps/Volume_create.py -v $JOB_NAME -apiuser $APIUSER  -apipass  $APIPASS -a $APISERVER -vs $VS -s $VOLSIZE  
+
+python /tmp/ps/build_artifact_create.py -v $VOLCI -a $APISERVER -s $CISNAP -apiuser $APIUSER -apipass $APIPASS -i $SLAVE -cont $BACONT -l $JOB_NAME -volba $JOB_NAME -m $JENKINS_URL</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

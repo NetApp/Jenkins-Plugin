@@ -1,18 +1,29 @@
-
-########################################################################################################################
-#                                                                                                                      #
-# NetApp -Jenkins Plugin using Docker container                                                                        #
-# Copyright 2016 NetApp, Inc.                                                                                          #
-#                                                                                                                      #
-# The python scripts in this folder and others, allow CI admin and the developer a plugin that integrates              #
-# with Cloudbees Jenkins Enterprise using NetApp ONTAP APIs to provide an automated continuous Integration (CI)        #
-# pipeline using Gitlab, Docker container and persistent storage using NetApp Docker Volume Plugin (nDVP) for ONTAP.   #
-#                                                                                                                      #
-# Maintained By:  Shrivatsa Upadhye (shrivatsa.upadhye@netapp.com)                                                     #
-#                 Akshay Patil (Akshay.Patil@netapp.com)                                                               #
-#                                                                                                                      #
-########################################################################################################################
-
+################################################################################
+# NetApp-Jenkins Integration Scripts
+#          This script was developed by NetApp to help demonstrate NetApp
+#          technologies.  This script is not officially supported as a
+#          standard NetApp product.
+#
+# Purpose: Script to list all the vservers and aggregates in a cluster.
+#
+#
+# Usage:   %> svm_aggr_list.py <args>
+#
+# Author:  Akshay Patil (akshay.patil@netapp.com)
+#
+# NETAPP CONFIDENTIAL
+# -------------------
+# Copyright 2016 NetApp, Inc. All Rights Reserved.
+#
+# NOTICE: All information contained herein is, and remains the property
+# of NetApp, Inc.  The intellectual and technical concepts contained
+# herein are proprietary to NetApp, Inc. and its suppliers, if applicable,
+# and may be covered by U.S. and Foreign Patents, patents in process, and are
+# protected by trade secret or copyright law. Dissemination of this
+# information or reproduction of this material is strictly forbidden unless
+# permission is obtained from NetApp, Inc.
+#
+################################################################################
 import base64
 import argparse
 import sys
@@ -107,7 +118,7 @@ def disp_vservers():
         row = [cl]
         tab.add_row(row)
         tab.set_cols_align(['c'])
-    print "Number of Vservers for the NetApp cluster :{}".format(ctr)
+    print "Number of Storage Tenants on the NetApp cluster :{}".format(ctr)
     s = tab.draw()
     print s
 
@@ -149,7 +160,7 @@ def disp_vol():
             row = [vol,si]
             tab.add_row(row)
             tab.set_cols_align(['c','c'])
-    print "Number of Volumes for this Vserver:{}".format(ctr)
+    print "Number of Volumes for this Storage Tenant:{}".format(ctr)
     s = tab.draw()
     print s
 	
